@@ -4,7 +4,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-
+             
 // 1. MIDDLEWARES (Configuraciones previas)
 app.use(cors()); // Permite que el Frontend (Vite) nos hable
 app.use(express.json()); // Permite recibir datos en formato JSON

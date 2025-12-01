@@ -4,22 +4,27 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 // --- REFERENCIAS AL HTML ---
 const bookForm = document.getElementById('bookForm');
 const tablaLibros = document.getElementById('tablaLibros');
-const bookIdInput = document.getElementById('bookId'); // Oculto
+const bookIdInput = document.getElementById('bookId'); // Oculto (asumo que tienes un input hidden con id="bookId")
 
-// URL DEL BACKEND (Esto lo cambiaremos cuando subas a Render)
-// Por ahora usaremos una url falsa para que no truene
-const API_URL = 'http://localhost:3000/libros'; 
+// URL DEL BACKEND (Tu URL de Render, que ya está Live)
+const API_URL = 'https://biblioteca-crud-api.onrender.com/api/libros';
 
 // --- 1. FUNCIÓN PARA OBTENER DATOS (GET) ---
 const obtenerLibros = async () => {
     try {
-        // AQUI ESTA EL "PROMISE/FETCH" QUE PIDE EL PROFE
+        // Petición GET con Promise/Fetch
         const respuesta = await fetch(API_URL);
+        
+        // Verifica si la respuesta fue exitosa (código 200)
+        if (!respuesta.ok) {
+             throw new Error(`HTTP error! status: ${respuesta.status}`);
+        }
+        
         const libros = await respuesta.json();
         renderizarTabla(libros);
     } catch (error) {
-        console.log("Error cargando libros (Normal si no hay backend aun):", error);
-        // Datos falsos de prueba mientras hacemos el backend
+        console.error("Error cargando libros:", error);
+        // Dejamos los datos falsos por si la API falla, aunque ya no deberían ser necesarios.
         renderizarTabla([
             {_id: '1', titulo: 'El Principito', autor: 'Exupery', anio: 1943, categoria: 'Ficción'},
             {_id: '2', titulo: 'Cien Años de Soledad', autor: 'Gabo', anio: 1967, categoria: 'Novela'}
@@ -49,7 +54,11 @@ const renderizarTabla = (libros) => {
 // --- 3. MANEJAR EL ENVÍO DEL FORMULARIO (POST / PUT) ---
 bookForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
+    const bookId = bookIdInput.value; // Obtiene el valor del campo oculto
+    const method = bookId ? 'PUT' : 'POST';
+    const url = bookId ? `${API_URL}/${bookId}` : API_URL;
+
     // Recolectar datos
     const datos = {
         titulo: document.getElementById('titulo').value,
@@ -58,9 +67,63 @@ bookForm.addEventListener('submit', async (e) => {
         categoria: document.getElementById('categoria').value
     };
 
-    alert("Aquí se enviaría a Mongo: " + JSON.stringify(datos));
-    // Aquí pondremos el fetch POST más adelante
+    try {
+        // AQUI ESTA EL FETCH POST/PUT (El Promise/Fetch para guardar/actualizar)
+        const respuesta = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(datos)
+        });
+
+        if (respuesta.ok || respuesta.status === 201) {
+            alert(`Libro ${bookId ? 'actualizado' : 'guardado'} con éxito.`);
+            
+            // 🚨 ¡LA CLAVE! Recarga la tabla para que aparezca el nuevo libro.
+            await obtenerLibros(); 
+            
+            // Limpiar el formulario
+            bookForm.reset();
+            bookIdInput.value = ''; // Limpia el ID para futuras creaciones
+        } else {
+            console.error("Error al guardar/actualizar:", await respuesta.text());
+            alert("Hubo un error en el servidor al procesar la solicitud.");
+        }
+    } catch (error) {
+        console.error("Error de conexión:", error);
+        alert("No se pudo conectar al Backend de Render. Revise el log.");
+    }
 });
 
-// Cargar al inicio
-obtenerLibros();
+
+// 🚨 Nota: Necesitas implementar las funciones "cargarEdicion" y "eliminarLibro"
+// si quieres que los botones de la tabla funcionen.
+// Aquí solo te incluyo la de eliminar, que es la que usa el fetch DELETE:
+
+// --- 4. FUNCIÓN PARA ELIMINAR LIBRO (DELETE) ---
+window.eliminarLibro = async (id) => {
+    if (!confirm('¿Estás seguro de eliminar este libro?')) {
+        return;
+    }
+    
+    try {
+        const respuesta = await fetch(`${API_URL}/${id}`, {
+            method: 'DELETE' // Petición DELETE
+        });
+
+        if (respuesta.ok) {
+            alert("Libro eliminado con éxito.");
+            // Recarga la tabla para que desaparezca el libro eliminado.
+            await obtenerLibros(); 
+        } else {
+            alert("Error al eliminar el libro.");
+        }
+    } catch (error) {
+        console.error("Error de conexión:", error);
+    }
+};
+
+
+// --- Cargar al inicio ---
+document.addEventListener('DOMContentLoaded', obtenerLibros);

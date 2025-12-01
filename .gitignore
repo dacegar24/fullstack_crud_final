@@ -1,4 +1,9 @@
-# Ignorar carpetas grandes y secretos
+# Archivos y carpetas generadas automáticamente
 node_modules/
-frontend/node_modules/
+dist/
+
+# Archivos de configuración de entorno (Contraseñas)
 .env
+
+# Archivos de VS Code
+.vscode/
